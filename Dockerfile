@@ -3,9 +3,9 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /out/api_proxy ./cmd/api_proxy
+RUN CGO_ENABLED=0 go build -o /out/crashtest_api ./cmd/crashtest_api
 
 FROM gcr.io/distroless/static-debian12
 COPY --from=build /out/crashtest_api /crashtest_api
 EXPOSE 8080
-ENTRYPOINT ["/api_proxy"]
+ENTRYPOINT ["/crashtest_api"]

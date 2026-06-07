@@ -1,4 +1,4 @@
-# api_proxy
+# crashtest_api
 
 A small Go service that proxies requests to upstream HTTP APIs registered in a
 Postgres-backed catalog. Clients hit `/` with an `api-id` query parameter and
@@ -7,7 +7,7 @@ the request is forwarded to the matching upstream's `base_url`.
 ## Layout
 
 ```
-cmd/api_proxy/        main entry point
+cmd/crashtest_api/        main entry point
 internal/api/         CRUD HTTP handlers for the API catalog
 internal/config/      env-driven configuration
 internal/db/          Postgres store + startup initialization/migrations
@@ -39,7 +39,7 @@ On startup the service:
 
 ```sh
 export DATABASE_URL='postgres://you@localhost:5432/middleman?sslmode=disable'
-go run ./cmd/api_proxy
+go run ./cmd/crashtest_api
 ```
 
 ### Docker (self-contained stack)
