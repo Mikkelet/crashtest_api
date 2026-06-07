@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mikkelthygesen/api_proxy/internal/db"
+	"crashtest_api/internal/db"
 )
 
 const apiIDParam = "api-id"

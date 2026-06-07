@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mikkelthygesen/api_proxy/internal/db"
+	"crashtest_api/internal/db"
 )
 
 var allowedMethods = map[string]struct{}{

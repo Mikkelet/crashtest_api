@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mikkelthygesen/api_proxy/internal/api"
-	"github.com/mikkelthygesen/api_proxy/internal/config"
-	"github.com/mikkelthygesen/api_proxy/internal/db"
-	"github.com/mikkelthygesen/api_proxy/internal/migrations"
-	"github.com/mikkelthygesen/api_proxy/internal/proxy"
+	"crashtest_api/internal/api"
+	"crashtest_api/internal/config"
+	"crashtest_api/internal/db"
+	"crashtest_api/internal/migrations"
+	"crashtest_api/internal/proxy"
 )
 
 func main() {

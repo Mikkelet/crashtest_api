@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mikkelthygesen/api_proxy/internal/db"
+	"crashtest_api/internal/db"
 )
 
 type Handler struct {

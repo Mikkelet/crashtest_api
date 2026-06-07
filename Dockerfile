@@ -6,6 +6,6 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /out/api_proxy ./cmd/api_proxy
 
 FROM gcr.io/distroless/static-debian12
-COPY --from=build /out/api_proxy /api_proxy
+COPY --from=build /out/crashtest_api /crashtest_api
 EXPOSE 8080
 ENTRYPOINT ["/api_proxy"]

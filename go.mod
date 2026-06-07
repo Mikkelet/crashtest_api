@@ -1,4 +1,4 @@
-module github.com/mikkelthygesen/api_proxy
+module crashtest_api
 
 go 1.26.4
 
