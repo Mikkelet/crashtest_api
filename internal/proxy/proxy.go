@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,12 @@ import (
 
 	"crashtest_api/internal/db"
 )
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
 
 const apiIDParam = "api-id"
 
@@ -36,18 +43,18 @@ func New(store *db.Store, logger *slog.Logger) *Handler {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	apiID := r.URL.Query().Get(apiIDParam)
 	if apiID == "" {
-		http.Error(w, "missing required query parameter: api-id", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "missing required query parameter: api-id")
 		return
 	}
 
 	api, err := h.store.GetAPI(r.Context(), apiID)
 	if errors.Is(err, db.ErrAPINotFound) {
-		http.Error(w, "unknown api-id", http.StatusNotFound)
+		writeJSONError(w, http.StatusNotFound, "unknown api-id")
 		return
 	}
 	if err != nil {
 		h.logger.Error("lookup api", "error", err, "api_id", apiID)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -58,7 +65,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	target, err := url.Parse(api.BaseURL)
 	if err != nil {
 		h.logger.Error("invalid base url", "error", err, "api_id", apiID, "base_url", api.BaseURL)
-		http.Error(w, "misconfigured api target", http.StatusBadGateway)
+		writeJSONError(w, http.StatusBadGateway, "misconfigured api target")
 		return
 	}
 
@@ -142,7 +149,7 @@ func (h *Handler) rewrite(pr *httputil.ProxyRequest) {
 
 func (h *Handler) proxyError(w http.ResponseWriter, r *http.Request, err error) {
 	h.logger.Error("proxy error", "error", err, "url", r.URL.String())
-	http.Error(w, "bad gateway", http.StatusBadGateway)
+	writeJSONError(w, http.StatusBadGateway, "bad gateway")
 }
 
 func singleJoiningSlash(a, b string) string {

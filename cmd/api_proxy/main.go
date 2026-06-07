@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,38 @@ import (
 	"crashtest_api/internal/migrations"
 	"crashtest_api/internal/proxy"
 )
+
+func withCORS(allowed map[string]struct{}, next http.Handler) http.Handler {
+	allowAny := len(allowed) == 0
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			if _, ok := allowed[origin]; ok || allowAny {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.Header().Set("Access-Control-Max-Age", "3600")
+			}
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func parseAllowedOrigins(raw string) map[string]struct{} {
+	out := map[string]struct{}{}
+	for _, o := range strings.Split(raw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			out[o] = struct{}{}
+		}
+	}
+	return out
+}
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -48,9 +81,10 @@ func main() {
 	})
 	api.New(store, logger).Register(mux)
 
+	allowed := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           mux,
+		Handler:           withCORS(allowed, mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
