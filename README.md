@@ -1,8 +1,8 @@
 # crashtest_api
 
 A small Go service that proxies requests to upstream HTTP APIs registered in a
-Postgres-backed catalog. Clients hit `/` with an `api-id` query parameter and
-the request is forwarded to the matching upstream's `base_url`.
+Postgres-backed catalog. Clients hit `/p/{api-id}/<rest...>` and the request is
+forwarded to the matching upstream's `base_url` joined with `<rest...>`.
 
 ## Layout
 
@@ -57,12 +57,12 @@ Postgres running on the host.
 ### Proxy
 
 ```
-ANY  /?api-id=<id>[&...]
+ANY  /p/{api-id}/<rest...>
 ```
 
-Looks up the API record with the given `id` (must be `enabled = true`), then
-forwards the request to its `base_url`. The `api-id` query parameter is stripped
-before forwarding. `X-Forwarded-*` headers are set.
+Looks up the API record with the given `api-id` (must be `enabled = true`), then
+forwards the request to its `base_url` joined with `<rest...>` (preserving the
+original query string). `X-Forwarded-*` headers are set.
 
 ### Catalog
 
@@ -88,4 +88,4 @@ GET /healthz   -> 200
 ## Schema
 
 See `internal/migrations/`. The `apis` table holds the catalog; `id` is the
-client-facing identifier passed as `api-id`.
+client-facing identifier used as the `{api-id}` path segment.

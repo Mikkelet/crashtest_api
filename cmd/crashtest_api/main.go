@@ -75,7 +75,7 @@ func main() {
 	defer store.Close()
 
 	mux := http.NewServeMux()
-	mux.Handle("/", proxy.New(store, logger))
+	mux.Handle(proxy.PathPrefix, proxy.New(store, logger))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

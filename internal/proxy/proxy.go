@@ -22,7 +22,7 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-const apiIDParam = "api-id"
+const PathPrefix = "/p/"
 
 type Handler struct {
 	store   *db.Store
@@ -41,9 +41,9 @@ func New(store *db.Store, logger *slog.Logger) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	apiID := r.URL.Query().Get(apiIDParam)
-	if apiID == "" {
-		writeJSONError(w, http.StatusBadRequest, "missing required query parameter: api-id")
+	apiID, rest, ok := splitProxyPath(r.URL.Path)
+	if !ok {
+		writeJSONError(w, http.StatusBadRequest, "missing api id in path; expected /p/{api-id}/...")
 		return
 	}
 
@@ -58,6 +58,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.URL.Path = rest
+	r.URL.RawPath = ""
+
 	if h.tryIntercept(w, r, apiID) {
 		return
 	}
@@ -71,6 +74,22 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx := context.WithValue(r.Context(), targetKey{}, target)
 	h.proxy.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// splitProxyPath extracts the api-id segment and the remaining upstream-relative
+// path from a request path of the form "/p/{api-id}/rest...".
+func splitProxyPath(p string) (apiID, rest string, ok bool) {
+	if !strings.HasPrefix(p, PathPrefix) {
+		return "", "", false
+	}
+	s := p[len(PathPrefix):]
+	if s == "" {
+		return "", "", false
+	}
+	if i := strings.Index(s, "/"); i != -1 {
+		return s[:i], s[i:], true
+	}
+	return s, "/", true
 }
 
 func (h *Handler) tryIntercept(w http.ResponseWriter, r *http.Request, apiID string) bool {
@@ -142,7 +161,7 @@ func (h *Handler) rewrite(pr *httputil.ProxyRequest) {
 		pr.Out.URL.RawPath = singleJoiningSlash(target.EscapedPath(), pr.In.URL.EscapedPath())
 	}
 
-	pr.Out.URL.RawQuery = stripAPIID(pr.In.URL.RawQuery)
+	pr.Out.URL.RawQuery = pr.In.URL.RawQuery
 
 	pr.SetXForwarded()
 }
@@ -162,18 +181,6 @@ func singleJoiningSlash(a, b string) string {
 		return a + "/" + b
 	}
 	return a + b
-}
-
-func stripAPIID(rawQuery string) string {
-	if rawQuery == "" {
-		return ""
-	}
-	values, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return rawQuery
-	}
-	values.Del(apiIDParam)
-	return values.Encode()
 }
 
 // patternCache compiles glob patterns to regex once and caches them.
